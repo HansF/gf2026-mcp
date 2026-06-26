@@ -12,7 +12,7 @@ commits: pending
 
 ## What Was Built
 
-Reduced token consumption of the Gentse Feesten 2026 MCP server by 38% across all measured scenarios (78,774 → 48,891 chars total). The most common user flow ("plan my day") dropped from 8,462 to 4,743 chars (44% reduction) by introducing a purpose-built `plan_day` tool. Added `get_event_summary` for lightweight event detail (no images/videos), trimmed tool descriptions, reduced resource payloads, and removed redundant fields from list views.
+Reduced token consumption of the Gentse Feesten 2026 MCP server by ~50% across all measured scenarios (78,774 → 50,410 chars total). The most common user flow ("plan my day") dropped from 8,462 to 4,743 chars (44% reduction) by introducing a purpose-built `plan_day` tool. Merged `get_event_detail`/`get_event_summary` into one tool with a `detail` parameter, added `get_today` for date context, removed redundant `reden` field from suggestions (~50% smaller per result), compacted the overview resource by 46%, and trimmed all tool descriptions to single sentences.
 
 ## Architecture
 
