@@ -451,9 +451,9 @@ def get_event_detail(uuid: str, detail: str = "full") -> dict:
 
 @mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
 def get_event_details(uuids: list[str], detail: str = "summary") -> list[BatchEventDetailResult]:
-    """Fetch details for up to 50 events. Preserves order. detail='full' for images/videos."""
+    """Fetch details for a list of events in ONE call. Accepts any number of UUIDs. Preserves order. Use detail='full' only when you need images/videos; 'summary' is lighter and faster."""
     result: list[BatchEventDetailResult] = []
-    for uuid in uuids[:50]:
+    for uuid in uuids:
         fn = _event_detail if detail == "full" else _event_summary
         d = fn(uuid)
         if "error" in d:
