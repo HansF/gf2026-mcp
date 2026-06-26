@@ -390,7 +390,7 @@ def _score_highlight(p: dict) -> tuple:
 
 @mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
 def search_events(
-    query: str = "",
+    query: str | list[str] = "",
     day: str = "",
     theme: str = "",
     free_only: bool = False,
@@ -398,42 +398,17 @@ def search_events(
     genre: str = "",
     wheelchair: bool = False,
     limit: int = 10,
-) -> list[dict]:
-    """Search events by text, day, theme, genre, free/outdoor/wheelchair filters."""
+) -> list[dict] | list[BatchSearchResult]:
+    """Search events. Pass a string for single query, list of strings for batch (shared filters)."""
+    if isinstance(query, list):
+        clean_queries = [q.strip() for q in query if q.strip()][:20]
+        result: list[BatchSearchResult] = []
+        for q in clean_queries:
+            hits = _filter_pages(q, day, theme, free_only, outdoor_only, genre, wheelchair)
+            result.append({"query": q, "events": [_short(p) for p in hits[:limit]]})
+        return result
     hits = _filter_pages(query, day, theme, free_only, outdoor_only, genre, wheelchair)
     return [_short(p) for p in hits[:limit]]
-
-
-@mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
-def search_events_batch(
-    queries: list[str],
-    day: str = "",
-    theme: str = "",
-    free_only: bool = False,
-    outdoor_only: bool = False,
-    genre: str = "",
-    wheelchair: bool = False,
-    limit_per_query: int = 10,
-) -> list[BatchSearchResult]:
-    """Search multiple queries at once with shared filters. Each query returns its own result list."""
-    clean_queries = [query.strip() for query in queries if query.strip()][:20]
-    safe_limit = max(1, min(limit_per_query, 50))
-    result: list[BatchSearchResult] = []
-    for query in clean_queries:
-        hits = _filter_pages(
-            query,
-            day,
-            theme,
-            free_only,
-            outdoor_only,
-            genre,
-            wheelchair,
-        )
-        result.append({
-            "query": query,
-            "events": [_short(p) for p in hits[:safe_limit]],
-        })
-    return result
 
 
 _LIGHT_EXCLUDE = {"image_caption", "image_copyright"}
@@ -577,17 +552,7 @@ def list_days() -> list[dict]:
     ]
 
 
-@mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
-def search_tags(query: str, limit: int = 20) -> list[dict]:
-    """Search event tags. Returns matching tags sorted by event count."""
-    needle = query.strip().casefold()
-    safe_limit = max(1, min(limit, 100))
-    if not needle:
-        return tags_data[:safe_limit]
-    return [
-        tag for tag in tags_data
-        if needle in tag["name"].casefold()
-    ][:safe_limit]
+
 
 
 @mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
