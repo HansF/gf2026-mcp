@@ -4,7 +4,7 @@
   "app_info": {
     "display_name": "Gentse Feesten 2026",
     "subtitle": "Vind evenementen in Gent",
-    "description": "Gentse Feesten 2026 helps users search the public festival program, discover events by interest, day, theme, tag, or location, inspect event details, and find free highlights.",
+    "description": "Gentse Feesten 2026 helps users search the public festival program, discover events by interest, day, theme, tag, or location, inspect event details, find free highlights, and plan a full day.",
     "category": "ENTERTAINMENT"
   },
   "tools": {
@@ -27,19 +27,19 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Retrieves one event from the local festival dataset by UUID without changing data.",
+        "read_only_justification": "Retrieves one event from the local festival dataset by UUID. Use detail=summary to exclude images/videos.",
         "open_world_justification": "Does not write to public internet state or any third-party system.",
         "destructive_justification": "Does not delete, overwrite, revoke access, or perform irreversible actions."
       }
     },
-    "get_event_summary": {
+    "get_today": {
       "annotations": {
         "readOnlyHint": true,
         "openWorldHint": false,
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Retrieves one event detail excluding images and video links from the local dataset.",
+        "read_only_justification": "Returns today's date and whether it falls within the festival period.",
         "open_world_justification": "Does not write to public internet state or any third-party system.",
         "destructive_justification": "Does not delete, overwrite, revoke access, or perform irreversible actions."
       }
@@ -168,6 +168,14 @@
       "file_attachment_urls": null,
       "tools_triggered": "free_highlights",
       "expected_output": "Returns up to ten ranked free events for the requested day.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Get current date and festival context for 'today' queries.",
+      "user_prompt": "Wat kan ik vandaag doen tijdens de Gentse Feesten?",
+      "file_attachment_urls": null,
+      "tools_triggered": "get_today",
+      "expected_output": "Returns today's date, weekday, and whether it's during the festival period.",
       "expected_output_url": null
     },
     {

@@ -467,35 +467,24 @@ def _event_summary(uuid: str) -> dict:
 
 
 @mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
-def get_event_detail(uuid: str) -> EventDetail | EventDetailError:
-    """Full event detail by UUID. Includes description, schedule, price, contact, keywords, videos."""
+def get_event_detail(uuid: str, detail: str = "full") -> dict:
+    """Get event detail by UUID. detail='full' includes videos/images; summary excludes them."""
+    if detail == "summary":
+        return _event_summary(uuid)
     return _event_detail(uuid)
 
 
 @mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
-def get_event_summary(uuid: str) -> dict:
-    """Event detail excluding images and video links. Use for planning and comparison."""
-    return _event_summary(uuid)
-
-
-@mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
-def get_event_details(uuids: list[str]) -> list[BatchEventDetailResult]:
-    """Fetch full details for up to 50 events at once. Preserves input order."""
+def get_event_details(uuids: list[str], detail: str = "summary") -> list[BatchEventDetailResult]:
+    """Fetch details for up to 50 events. Preserves order. detail='full' for images/videos."""
     result: list[BatchEventDetailResult] = []
     for uuid in uuids[:50]:
-        detail = _event_detail(uuid)
-        if "error" in detail:
-            result.append({
-                "uuid": uuid,
-                "event": None,
-                "error": detail["error"],
-            })
+        fn = _event_detail if detail == "full" else _event_summary
+        d = fn(uuid)
+        if "error" in d:
+            result.append({"uuid": uuid, "event": None, "error": d["error"]})
         else:
-            result.append({
-                "uuid": uuid,
-                "event": detail,
-                "error": None,
-            })
+            result.append({"uuid": uuid, "event": d, "error": None})
     return result
 
 
@@ -570,27 +559,7 @@ def suggest(mood: str) -> list[dict]:
     # Sorteer: buiten-bonus, heeft beschrijving, meeste occurrences
     hits.sort(key=_score_highlight, reverse=True)
 
-    # Bouw reden-veld per event
-    result = []
-    for p in hits[:8]:
-        short = _short(p)
-        reasons = []
-        if free_only and p.get("free"):
-            reasons.append("gratis")
-        if outdoor_only and p.get("outdoor"):
-            reasons.append("buiten")
-        if theme and any(theme in t.lower() for t in p.get("themes", [])):
-            reasons.append(f"thema: {', '.join(p['themes'])}")
-        if genre and p.get("genre"):
-            reasons.append(f"genre: {p['genre']}")
-        if wheelchair and p.get("wheelchair_ok"):
-            reasons.append("rolstoeltoegankelijk")
-        if not reasons:
-            reasons.append("past bij je zoekopdracht")
-        short["reden"] = " · ".join(reasons)
-        result.append(short)
-
-    return result
+    return [_short(p) for p in hits[:8]]
 
 
 @mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
@@ -647,6 +616,19 @@ def free_highlights(day: str = "") -> list[dict]:
     hits = _filter_pages(day=day, free_only=True)
     hits.sort(key=_score_highlight, reverse=True)
     return [_short(p) for p in hits[:10]]
+
+
+@mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
+def get_today() -> dict:
+    """Get current date and festival day info. Use when user says 'today' or 'tonight'."""
+    today = date.today().isoformat()
+    in_festival = today in _iso_to_nl
+    return {
+        "date": today,
+        "weekday": _iso_to_nl.get(today, ""),
+        "in_festival": in_festival,
+        "festival_range": f"{days_data[0]['day']} to {days_data[-1]['day']}",
+    }
 
 
 @mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
@@ -707,30 +689,14 @@ def overview() -> str:
 
     return f"""# Gentse Feesten 2026
 
-Het grootste gratis stadsfestival van Europa, 10 dagen lang in het hart van Gent (België).
+11-day free city festival in Gent, Belgium ({day_range}).
 
-## Basisinfo
-- **Datum:** {day_range} (11 dagen)
-- **Locatie:** Gent, België — meer dan 300 locaties door de hele stad
-- **Unieke evenementen:** {len(pages)}
-- **Totale voorstellingen:** {len(events)}
+- **Unique events:** {len(pages)} ({len(events)} total performances)
+- **Free:** {n_free}/{len(pages)} ({n_free*100//len(pages)}%) · **Outdoor:** {n_outdoor}
+- **Themes:** {theme_names}
+- **Genres:** {genre_names}
 
-## Highlights
-- **Gratis evenementen:** {n_free} van {len(pages)} ({n_free*100//len(pages)}%)
-- **Buitenevenementen:** {n_outdoor}
-- **Evenementen met video:** {n_video}
-
-## Thema's
-{theme_names}, ...
-
-## Muziekgenres
-{genre_names}, ...
-
-## Tips
-- `plan_day` voor een volledig dagoverzicht in één call
-- `search_events` met filters, `suggest` voor vrije omschrijvingen
-- `get_event_summary(uuid)` zonder beeld/video, `get_event_detail(uuid)` voor alles
-- `free_highlights` voor gratis aanraders, `events_by_location` per plek
+Tools: `plan_day` (full day), `search_events` (filtered), `suggest` (natural language), `get_event_summary`/`get_event_detail` (event info), `free_highlights`, `events_by_location`.
 """
 
 

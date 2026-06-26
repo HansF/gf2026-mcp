@@ -12,33 +12,37 @@ publiek en de server vereist daarom geen authenticatie.
 
 Tools:
 
-- `search_events`
-- `get_event_detail`
-- `suggest`
-- `list_themes`
-- `list_days`
-- `search_tags`
-- `events_by_location`
-- `free_highlights`
+- `search_events(query, day, theme, free_only, outdoor_only, genre, wheelchair, limit)` — search with filters
+- `search_events_batch(queries, ...)` — search multiple queries at once
+- `get_event_detail(uuid, detail="full")` — event detail; use `detail="summary"` to exclude images/videos
+- `get_event_details(uuids, detail="summary")` — batch detail for up to 50 events
+- `suggest(mood)` — natural-language recommendations
+- `plan_day(day)` — full day plan: highlights + themed picks in one call
+- `get_today()` — current date and festival context
+- `list_themes()` — all themes with event counts
+- `list_days()` — all festival dates with counts
+- `search_tags(query, limit)` — search event tags
+- `events_by_location(location_name, day)` — events at a location
+- `free_highlights(day)` — top 10 free events for a day
 
 Resources:
 
-- `gf://overview` — overzicht en statistieken
-- `gf://days` — festivaldagen en aantallen
-- `gf://themes` — thema's en aantallen
-- `gf://tags` — de 300 meest gebruikte tags en aantallen
-
-Gebruik `search_tags(query, limit)` om in de volledige taglijst te zoeken.
+- `gf://overview` — festival stats and usage tips
+- `gf://days` — festival dates with counts
+- `gf://themes` — themes with counts
+- `gf://tags` — top 50 tags with counts
 
 ## Vereisten
 
 - Python 3.10 of nieuwer
-- De festivaldata in `../site/data/`
+- De festivaldata in `../site/data/` (productielayout) of de naastgelegen
+  repository `../gf2026/site/data/` (lokale ontwikkellayout)
 
-De server verwacht deze bestanden:
+Stel `GF_MCP_DATA_DIR` in wanneer de data ergens anders staat. De server
+verwacht deze bestanden:
 
 ```text
-site/data/
+gf2026/site/data/
 ├── days.json
 ├── event_pages.json
 ├── events.json
@@ -86,6 +90,13 @@ De MCP-endpoint is dan:
 http://127.0.0.1:8000/mcp
 ```
 
+Publieke juridische pagina's:
+
+```text
+http://127.0.0.1:8000/privacy
+http://127.0.0.1:8000/terms
+```
+
 Voor een container of een host die rechtstreeks op het netwerk luistert:
 
 ```bash
@@ -106,6 +117,7 @@ Beschikbare configuratie:
 | --- | --- | --- |
 | `GF_MCP_HOST` | `127.0.0.1` | Luisteradres |
 | `GF_MCP_PORT` | `8000` | HTTP-poort |
+| `GF_MCP_DATA_DIR` | Automatisch gedetecteerd | Map met de JSON-programmadata |
 
 ## Verbinden
 
