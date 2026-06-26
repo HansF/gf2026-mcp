@@ -15,10 +15,109 @@ import os
 from collections import Counter
 from datetime import date
 from pathlib import Path
+from typing import TypedDict, cast
 
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
+from starlette.requests import Request
+from starlette.responses import HTMLResponse, PlainTextResponse
 
-DATA_DIR = Path(__file__).parent.parent / "site" / "data"
+PROJECT_DIR = Path(__file__).resolve().parent
+
+
+def _data_dir() -> Path:
+    configured = os.getenv("GF_MCP_DATA_DIR")
+    if configured:
+        return Path(configured).expanduser()
+
+    candidates = (
+        PROJECT_DIR.parent / "site" / "data",
+        PROJECT_DIR.parent / "gf2026" / "site" / "data",
+    )
+    for candidate in candidates:
+        if (candidate / "event_pages.json").is_file():
+            return candidate
+    return candidates[0]
+
+
+DATA_DIR = _data_dir()
+
+
+class EventOccurrence(TypedDict):
+    start: str
+    end: str
+    day: str
+    time: str
+    time_end: str
+    location: str
+    weekday: str
+
+
+class EventOffer(TypedDict):
+    price: str
+    currency: str
+    desc: str
+
+
+class EventContact(TypedDict):
+    email: str
+    tel: str
+    url: str
+
+
+class EventVideo(TypedDict):
+    embed: str
+    thumb: str
+    caption: str
+
+
+class EventDetail(TypedDict):
+    uuid: str
+    name: str
+    desc: str
+    themes: list[str]
+    organizers: list[str]
+    location: str
+    street: str
+    postal: str
+    city: str
+    lat: float | None
+    lon: float | None
+    free: bool
+    age: str
+    genre: str
+    url: str
+    image: str
+    occurrences: list[EventOccurrence]
+    count: int
+    first: str
+    offers: list[EventOffer]
+    contacts: list[EventContact]
+    keywords: list[str]
+    duration: str
+    frequency: str
+    languages: list[str]
+    wheelchair_ok: bool
+    outdoor: bool
+    videos: list[EventVideo]
+    image_caption: str
+    image_copyright: str
+
+
+class EventDetailError(TypedDict):
+    error: str
+
+
+class BatchSearchResult(TypedDict):
+    query: str
+    events: list[dict]
+
+
+class BatchEventDetailResult(TypedDict):
+    uuid: str
+    event: EventDetail | None
+    error: str | None
+
 
 # Laad alles éénmalig bij opstarten
 pages: list[dict] = json.loads((DATA_DIR / "event_pages.json").read_text(encoding="utf-8"))
@@ -66,7 +165,7 @@ tags_data: list[dict] = [
         key=lambda item: (-item[1], item[0]),
     )
 ]
-TAG_RESOURCE_LIMIT = 300
+TAG_RESOURCE_LIMIT = 50
 
 HOST = os.getenv("GF_MCP_HOST", "127.0.0.1")
 PORT = int(os.getenv("GF_MCP_PORT", "8000"))
@@ -78,6 +177,122 @@ mcp = FastMCP(
     stateless_http=True,
     json_response=True,
 )
+
+READ_ONLY_TOOL_ANNOTATIONS = ToolAnnotations(
+    readOnlyHint=True,
+    openWorldHint=False,
+    destructiveHint=False,
+)
+
+OPENAI_APPS_CHALLENGE_TOKEN = "v_bO2xepAywAqMN84rtXBGVESnwXSQS-CkGeEJjI7Lw"
+
+LEGAL_PAGE_STYLE = """
+body {
+    color: #1f2937;
+    font: 16px/1.6 system-ui, sans-serif;
+    margin: 0 auto;
+    max-width: 760px;
+    padding: 2rem 1.25rem 4rem;
+}
+h1, h2 { color: #111827; line-height: 1.25; }
+a { color: #075985; }
+.updated { color: #4b5563; }
+"""
+
+
+@mcp.custom_route(
+    "/.well-known/openai-apps-challenge",
+    methods=["GET"],
+    include_in_schema=False,
+)
+async def openai_apps_challenge(_: Request) -> PlainTextResponse:
+    return PlainTextResponse(OPENAI_APPS_CHALLENGE_TOKEN)
+
+
+def _legal_page(title: str, content: str) -> HTMLResponse:
+    return HTMLResponse(
+        f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title} — Gentse Feesten 2026</title>
+  <style>{LEGAL_PAGE_STYLE}</style>
+</head>
+<body>
+  <main>
+    <h1>{title}</h1>
+    <p class="updated">Last updated: June 24, 2026</p>
+    {content}
+  </main>
+</body>
+</html>"""
+    )
+
+
+@mcp.custom_route("/privacy", methods=["GET"], include_in_schema=False)
+async def privacy_policy(_: Request) -> HTMLResponse:
+    return _legal_page(
+        "Privacy Policy",
+        """
+<p>Gentse Feesten 2026 provides read-only access to public festival
+information through an MCP server.</p>
+<h2>Information we process</h2>
+<p>The service does not require an account and does not intentionally request
+or store names, email addresses, payment information, credentials, or other
+personal information. Requests may contain search terms and preferences that
+are used only to return relevant festival information.</p>
+<h2>Technical logs</h2>
+<p>The hosting provider or reverse proxy may temporarily process standard
+technical information such as IP addresses, timestamps, requested paths, and
+user-agent data for security, reliability, rate limiting, and troubleshooting.
+These logs are not used for advertising or profiling.</p>
+<h2>Data sharing and retention</h2>
+<p>The app does not sell personal information. Technical data may be processed
+by infrastructure providers solely to operate and secure the service, and may
+be retained according to their operational policies or legal requirements.</p>
+<h2>Third-party links</h2>
+<p>Festival records may contain links to organizers, ticket providers, or
+other websites. Their privacy practices are governed by their own policies.</p>
+<h2>Contact</h2>
+<p>Questions about this policy can be submitted through the
+<a href="https://github.com/HansF/gf2026-mcp/issues">project issue tracker</a>.</p>
+""",
+    )
+
+
+@mcp.custom_route("/terms", methods=["GET"], include_in_schema=False)
+async def terms_of_service(_: Request) -> HTMLResponse:
+    return _legal_page(
+        "Terms of Service",
+        """
+<p>By using the Gentse Feesten 2026 MCP service, you agree to these terms.</p>
+<h2>Service scope</h2>
+<p>The service provides read-only search, recommendations, and event details
+from public Gentse Feesten 2026 program data. It does not sell tickets, make
+reservations, process payments, or act on behalf of event organizers.</p>
+<h2>Accuracy and availability</h2>
+<p>Program details may change or contain errors. Verify important information,
+including schedules, prices, accessibility, and availability, with the event
+organizer or official festival source. The service may be changed, suspended,
+or discontinued without notice.</p>
+<h2>Acceptable use</h2>
+<p>Do not misuse the service, attempt unauthorized access, disrupt its
+operation, evade rate limits, or use it in violation of applicable law or
+third-party rights.</p>
+<h2>Disclaimer</h2>
+<p>The service is provided “as is” and “as available,” without warranties of
+accuracy, availability, fitness for a particular purpose, or non-infringement,
+to the extent permitted by law.</p>
+<h2>Limitation of liability</h2>
+<p>To the extent permitted by law, the service operator is not liable for
+indirect, incidental, special, consequential, or reliance-based losses arising
+from use of the service or third-party event information.</p>
+<h2>Contact</h2>
+<p>Questions about these terms can be submitted through the
+<a href="https://github.com/HansF/gf2026-mcp/issues">project issue tracker</a>.</p>
+""",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -99,21 +314,18 @@ def _resolve_day(s: str) -> str | None:
 
 
 def _short(p: dict) -> dict:
-    """Compact event-record voor lijstweergave."""
     occ = p.get("occurrences") or []
     days_list = sorted({o["day"] for o in occ})
     return {
         "uuid": p["uuid"],
         "name": p["name"],
         "days": days_list,
-        "first_day": days_list[0] if days_list else "",
         "first_weekday": _iso_to_nl.get(days_list[0], "") if days_list else "",
         "first_time": occ[0]["time"] if occ else "",
         "location": p.get("location", ""),
         "free": p.get("free", False),
         "outdoor": p.get("outdoor", False),
         "themes": p.get("themes", []),
-        "desc": (p.get("desc") or "")[:200],
     }
 
 
@@ -176,7 +388,7 @@ def _score_highlight(p: dict) -> tuple:
 # Tools
 # ---------------------------------------------------------------------------
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
 def search_events(
     query: str = "",
     day: str = "",
@@ -187,38 +399,66 @@ def search_events(
     wheelchair: bool = False,
     limit: int = 10,
 ) -> list[dict]:
-    """Zoek evenementen van de Gentse Feesten 2026.
-
-    Args:
-        query: Vrije zoektekst (naam, beschrijving, trefwoorden).
-        day: Festivaldag als ISO-datum ('2026-07-19') of Nederlands dagwoord
-             ('vrijdag', 'zaterdag', ...).
-        theme: Deelstring van een thema ('jazz', 'kinder', 'dans', 'theater',
-               'comedy', 'circus', 'wandeling', 'boot', 'markt', ...).
-        free_only: Toon alleen gratis evenementen.
-        outdoor_only: Toon alleen buitenevenementen.
-        genre: Muziekgenre ('jazz', 'rock', 'klassiek', 'folk', 'pop', 'blues',
-               'world', 'electronica', 'soul', 'metal', 'chanson', ...).
-        wheelchair: Toon alleen rolstoeltoegankelijke evenementen.
-        limit: Maximum aantal resultaten (default 10).
-    """
+    """Search events by text, day, theme, genre, free/outdoor/wheelchair filters."""
     hits = _filter_pages(query, day, theme, free_only, outdoor_only, genre, wheelchair)
     return [_short(p) for p in hits[:limit]]
 
 
-@mcp.tool()
-def get_event_detail(uuid: str) -> dict:
-    """Geef het volledige detail van één evenement op UUID.
+@mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
+def search_events_batch(
+    queries: list[str],
+    day: str = "",
+    theme: str = "",
+    free_only: bool = False,
+    outdoor_only: bool = False,
+    genre: str = "",
+    wheelchair: bool = False,
+    limit_per_query: int = 10,
+) -> list[BatchSearchResult]:
+    """Search multiple queries at once with shared filters. Each query returns its own result list."""
+    clean_queries = [query.strip() for query in queries if query.strip()][:20]
+    safe_limit = max(1, min(limit_per_query, 50))
+    result: list[BatchSearchResult] = []
+    for query in clean_queries:
+        hits = _filter_pages(
+            query,
+            day,
+            theme,
+            free_only,
+            outdoor_only,
+            genre,
+            wheelchair,
+        )
+        result.append({
+            "query": query,
+            "events": [_short(p) for p in hits[:safe_limit]],
+        })
+    return result
 
-    Returns alle velden: beschrijving, alle data/tijdstippen (occurrences),
-    prijs (offers), contactinfo, trefwoorden, duur, video-links,
-    toegankelijkheid, etc.
-    """
-    p = _pages_by_uuid.get(uuid.strip())
+
+_LIGHT_EXCLUDE = {"image_caption", "image_copyright"}
+
+
+def _event_detail(uuid: str) -> EventDetail | EventDetailError:
+    clean_uuid = uuid.strip()
+    p = _pages_by_uuid.get(clean_uuid)
     if not p:
-        return {"error": f"Geen evenement gevonden met uuid '{uuid}'."}
-    # Verrijkt met weekdagen per occurrence
-    result = dict(p)
+        return {"error": f"unknown uuid '{uuid}'"}
+    result = {k: v for k, v in p.items() if k not in _LIGHT_EXCLUDE}
+    result["occurrences"] = [
+        {**o, "weekday": _iso_to_nl.get(o.get("day", ""), "")}
+        for o in (p.get("occurrences") or [])
+    ]
+    return cast(EventDetail, result)
+
+
+def _event_summary(uuid: str) -> dict:
+    clean_uuid = uuid.strip()
+    p = _pages_by_uuid.get(clean_uuid)
+    if not p:
+        return {"error": f"unknown uuid '{uuid}'"}
+    exclude = _LIGHT_EXCLUDE | {"image", "videos"}
+    result = {k: v for k, v in p.items() if k not in exclude}
     result["occurrences"] = [
         {**o, "weekday": _iso_to_nl.get(o.get("day", ""), "")}
         for o in (p.get("occurrences") or [])
@@ -226,22 +466,44 @@ def get_event_detail(uuid: str) -> dict:
     return result
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
+def get_event_detail(uuid: str) -> EventDetail | EventDetailError:
+    """Full event detail by UUID. Includes description, schedule, price, contact, keywords, videos."""
+    return _event_detail(uuid)
+
+
+@mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
+def get_event_summary(uuid: str) -> dict:
+    """Event detail excluding images and video links. Use for planning and comparison."""
+    return _event_summary(uuid)
+
+
+@mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
+def get_event_details(uuids: list[str]) -> list[BatchEventDetailResult]:
+    """Fetch full details for up to 50 events at once. Preserves input order."""
+    result: list[BatchEventDetailResult] = []
+    for uuid in uuids[:50]:
+        detail = _event_detail(uuid)
+        if "error" in detail:
+            result.append({
+                "uuid": uuid,
+                "event": None,
+                "error": detail["error"],
+            })
+        else:
+            result.append({
+                "uuid": uuid,
+                "event": detail,
+                "error": None,
+            })
+    return result
+
+
+@mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
 def suggest(mood: str) -> list[dict]:
-    """Aanbevelingen op basis van wat je wil doen of voelen.
+    """Get recommendations from a natural-language description of what you want.
 
-    Omschrijf vrij wat je zoekt en de server filtert de beste opties eruit.
-
-    Voorbeelden:
-      'gratis jazz concert buiten vanavond'
-      'iets voor kinderen op zaterdag'
-      'romantisch dansen'
-      'rustig museumbezoek'
-      'circus of straattheater'
-      'rolstoeltoegankelijk comedy'
-
-    Args:
-        mood: Vrije omschrijving van wat je zoekt.
+    Examples: 'gratis jazz buiten zaterdag', 'iets voor kinderen', 'rolstoeltoegankelijk comedy'
     """
     m = mood.lower()
 
@@ -331,39 +593,24 @@ def suggest(mood: str) -> list[dict]:
     return result
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
 def list_themes() -> list[dict]:
-    """Geef alle 18 thema's van de Gentse Feesten met het aantal evenementen per thema.
-
-    Thema's zijn: Varia, Concerten (jazz/rock/klassiek/divers),
-    Tentoonstellingen, Kinder- en jeugdprogramma's, Wandelingen, Theater,
-    Comedy, Bals/Dans, Spel & sport, Boottochten, Vertellingen, Circus, ...
-    """
+    """List all festival themes with event counts."""
     return themes_data
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
 def list_days() -> list[dict]:
-    """Geef alle 11 festivaldagen met het aantal evenementen per dag.
-
-    Het festival loopt van vrijdag 17 juli tot maandag 27 juli 2026 in Gent.
-    """
+    """List all festival dates with weekday and event count."""
     return [
         {"day": d["day"], "weekday": _iso_to_nl.get(d["day"], ""), "count": d["count"]}
         for d in days_data
     ]
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
 def search_tags(query: str, limit: int = 20) -> list[dict]:
-    """Zoek in alle trefwoorden/tags van de evenementen.
-
-    Args:
-        query: Deel van een tag, niet hoofdlettergevoelig.
-        limit: Maximum aantal resultaten (default 20, maximum 100).
-
-    Resultaten zijn gesorteerd op aantal gekoppelde evenementen.
-    """
+    """Search event tags. Returns matching tags sorted by event count."""
     needle = query.strip().casefold()
     safe_limit = max(1, min(limit, 100))
     if not needle:
@@ -374,15 +621,9 @@ def search_tags(query: str, limit: int = 20) -> list[dict]:
     ][:safe_limit]
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
 def events_by_location(location_name: str, day: str = "") -> list[dict]:
-    """Geef alle evenementen op een specifieke locatie.
-
-    Args:
-        location_name: (Deel van) de locatienaam, niet hoofdlettergevoelig.
-                       Bijv. 'Vrijdagmarkt', 'Gravensteen', 'Vooruit'.
-        day: Optioneel filter op dag (ISO-datum of Nederlands dagwoord).
-    """
+    """Find events at a location. Partial name match, optional day filter."""
     needle = location_name.strip().lower()
     iso_day = _resolve_day(day) if day else None
 
@@ -396,24 +637,58 @@ def events_by_location(location_name: str, day: str = "") -> list[dict]:
                 continue
         result.append(_short(p))
 
-    result.sort(key=lambda x: (x["first_day"], x["first_time"]))
+    result.sort(key=lambda x: (x["days"][0] if x["days"] else "", x["first_time"]))
     return result
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
 def free_highlights(day: str = "") -> list[dict]:
-    """Top 10 gratis aanraders voor een dag of het hele festival.
-
-    Selecteert gratis evenementen en sorteert op: buitenlocatie bonus,
-    aanwezigheid van beschrijving, en aantal voorstellingen.
-
-    Args:
-        day: Optioneel filter op dag (ISO-datum of Nederlands dagwoord).
-             Zonder dag: beste gratis events van het hele festival.
-    """
+    """Top 10 free event picks for a day (or entire festival if no day given)."""
     hits = _filter_pages(day=day, free_only=True)
     hits.sort(key=_score_highlight, reverse=True)
     return [_short(p) for p in hits[:10]]
+
+
+@mcp.tool(annotations=READ_ONLY_TOOL_ANNOTATIONS)
+def plan_day(day: str = "") -> dict:
+    """Get a full day plan: day info, free highlights, and themed picks in one call."""
+    iso = _resolve_day(day) if day else None
+    if not iso:
+        from datetime import date
+        today = date.today().isoformat()
+        iso = today if today in _iso_to_nl else None
+
+    day_info = None
+    if iso:
+        for d in days_data:
+            if d["day"] == iso:
+                day_info = {"day": iso, "weekday": _iso_to_nl.get(iso, ""), "count": d["count"]}
+                break
+
+    free = _filter_pages(day=iso or "", free_only=True)
+    free.sort(key=_score_highlight, reverse=True)
+
+    themes_seen = set()
+    picks = []
+    for p in _filter_pages(day=iso or "")[:50]:
+        short = _short(p)
+        for t in p.get("themes", []):
+            if t not in themes_seen and len(picks) < 5:
+                themes_seen.add(t)
+                picks.append({
+                    "theme": t,
+                    "name": short["name"],
+                    "location": short["location"],
+                    "time": short["first_time"],
+                    "uuid": short["uuid"],
+                })
+                break
+
+    return {
+        "day_info": day_info,
+        "free_highlights": [_short(p) for p in free[:10]],
+        "picks": picks,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -451,12 +726,11 @@ Het grootste gratis stadsfestival van Europa, 10 dagen lang in het hart van Gent
 ## Muziekgenres
 {genre_names}, ...
 
-## Tips voor gebruik
-- Gebruik `search_events` met filters voor gerichte zoekacties
-- Gebruik `suggest` voor vrije omschrijvingen ("gratis jazz buiten zaterdag")
-- Gebruik `get_event_detail(uuid)` voor volledige info inclusief tickets en contact
-- Gebruik `free_highlights` voor de beste gratis opties per dag
-- Gebruik `events_by_location` om te zien wat er speelt op een specifieke plek
+## Tips
+- `plan_day` voor een volledig dagoverzicht in één call
+- `search_events` met filters, `suggest` voor vrije omschrijvingen
+- `get_event_summary(uuid)` zonder beeld/video, `get_event_detail(uuid)` voor alles
+- `free_highlights` voor gratis aanraders, `events_by_location` per plek
 """
 
 
@@ -481,15 +755,12 @@ def resource_themes() -> str:
 
 @mcp.resource("gf://tags")
 def resource_tags() -> str:
-    """De 300 meest gebruikte trefwoorden/tags met evenementenaantallen."""
+    """Top 50 event tags with event counts. Use search_tags for full list."""
     lines = [
-        f"# Gentse Feesten 2026 — Top {TAG_RESOURCE_LIMIT} tags",
+        f"# Gentse Feesten 2026 — Top tags",
         "",
-        (
-            f"Er zijn {len(tags_data)} unieke tags. Hoofdlettervarianten zijn "
-            "samengevoegd en de tags zijn gesorteerd op aantal evenementen."
-        ),
-        "Gebruik `search_tags` om in de volledige taglijst te zoeken.",
+        f"{len(tags_data)} unique tags available. Showing top 50 by event count.",
+        "Use `search_tags` to find specific tags.",
         "",
     ]
     for tag in tags_data[:TAG_RESOURCE_LIMIT]:
