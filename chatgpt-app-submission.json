@@ -4,10 +4,28 @@
   "app_info": {
     "display_name": "Gentse Feesten 2026",
     "subtitle": "Vind evenementen in Gent",
-    "description": "Gentse Feesten 2026 helps users search the public festival program, discover events by interest, day, theme, tag, or location, inspect event details, find free highlights, and plan a full day.",
+    "description": "Gentse Feesten 2026 helps users explore the public Gentse Feesten 2026 festival programme in Gent. It can search events by interest, day, time-of-day window, theme, tag, genre, accessibility, location, or festival zone; provide event details and occurrences with accurate day-specific times; recommend free highlights prioritized for the requested day; build full-day plans; find similar events by vector similarity, location, and schedule; resolve parent/child event relationships; and create personal festival guides for different moods, groups, and energy levels.",
     "category": "ENTERTAINMENT"
   },
+  "app_urls": {
+    "mcp_server_url": "https://gf2026.doplr.com/mcp",
+    "privacy_policy_url": "https://gf2026.doplr.com/privacy",
+    "terms_of_service_url": "https://gf2026.doplr.com/terms"
+  },
+  "release_notes": "Adds a read-only ChatGPT Apps widget: show_festival_explorer opens an interactive Festival Explorer for searches, day plans, personal guides, and zones while preserving the existing MCP tools and response shapes. Also keeps vector-index startup failures non-fatal so non-vector tools remain available when model downloads are unavailable.",
   "tools": {
+    "show_festival_explorer": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Returns a read-only widget payload derived from public festival programme data and does not change data.",
+        "open_world_justification": "Only reads locally hosted festival programme data and exposes a local widget template; it does not write to any external system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, purchase tickets, make reservations, or perform irreversible actions."
+      }
+    },
     "search_events": {
       "annotations": {
         "readOnlyHint": true,
@@ -15,9 +33,21 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Searches the local festival dataset and returns matching events without changing data.",
-        "open_world_justification": "Does not write to public internet state or any third-party system.",
-        "destructive_justification": "Does not delete, overwrite, revoke access, or perform irreversible actions."
+        "read_only_justification": "Searches the public local festival dataset and returns matching events without changing data.",
+        "open_world_justification": "Only reads locally hosted festival programme data and does not write to public internet state or any third-party system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, purchase tickets, make reservations, or perform irreversible actions."
+      }
+    },
+    "semantic_search": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Runs vector, keyword, or hybrid retrieval over the public festival dataset and returns matching events without modifying data.",
+        "open_world_justification": "Only queries locally hosted festival programme indexes and does not write to any external system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, purchase tickets, make reservations, or perform irreversible actions."
       }
     },
     "get_event_detail": {
@@ -27,21 +57,21 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Retrieves one event from the local festival dataset by UUID. Use detail=summary to exclude images/videos.",
-        "open_world_justification": "Does not write to public internet state or any third-party system.",
-        "destructive_justification": "Does not delete, overwrite, revoke access, or perform irreversible actions."
+        "read_only_justification": "Retrieves one public event record by UUID without changing data.",
+        "open_world_justification": "Only reads locally hosted festival programme data and does not write to any external system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, purchase tickets, make reservations, or perform irreversible actions."
       }
     },
-    "get_today": {
+    "get_event_details": {
       "annotations": {
         "readOnlyHint": true,
         "openWorldHint": false,
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Returns today's date and whether it falls within the festival period.",
-        "open_world_justification": "Does not write to public internet state or any third-party system.",
-        "destructive_justification": "Does not delete, overwrite, revoke access, or perform irreversible actions."
+        "read_only_justification": "Retrieves multiple public event records by UUID in one call without changing data.",
+        "open_world_justification": "Only reads locally hosted festival programme data and does not write to any external system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, purchase tickets, make reservations, or perform irreversible actions."
       }
     },
     "suggest": {
@@ -51,9 +81,9 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Computes event recommendations from a user's preferences using the local festival dataset.",
-        "open_world_justification": "Does not write to public internet state or any third-party system.",
-        "destructive_justification": "Does not delete, overwrite, revoke access, or perform irreversible actions."
+        "read_only_justification": "Computes recommendations from public festival records and the user's stated preferences without changing data.",
+        "open_world_justification": "Only reads locally hosted festival programme data and does not write to any external system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, purchase tickets, make reservations, or perform irreversible actions."
       }
     },
     "list_themes": {
@@ -63,9 +93,9 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Lists festival themes and event counts from the local dataset without changing data.",
-        "open_world_justification": "Does not write to public internet state or any third-party system.",
-        "destructive_justification": "Does not delete, overwrite, revoke access, or perform irreversible actions."
+        "read_only_justification": "Lists public festival themes and event counts without changing data.",
+        "open_world_justification": "Only reads locally hosted festival programme data and does not write to any external system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, purchase tickets, make reservations, or perform irreversible actions."
       }
     },
     "list_days": {
@@ -75,21 +105,9 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Lists festival dates and event counts from the local dataset without changing data.",
-        "open_world_justification": "Does not write to public internet state or any third-party system.",
-        "destructive_justification": "Does not delete, overwrite, revoke access, or perform irreversible actions."
-      }
-    },
-    "search_tags": {
-      "annotations": {
-        "readOnlyHint": true,
-        "openWorldHint": false,
-        "destructiveHint": false
-      },
-      "justifications": {
-        "read_only_justification": "Searches event tags derived from the local festival dataset without changing data.",
-        "open_world_justification": "Does not write to public internet state or any third-party system.",
-        "destructive_justification": "Does not delete, overwrite, revoke access, or perform irreversible actions."
+        "read_only_justification": "Lists public festival dates, weekdays, and event counts without changing data.",
+        "open_world_justification": "Only reads locally hosted festival programme data and does not write to any external system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, purchase tickets, make reservations, or perform irreversible actions."
       }
     },
     "events_by_location": {
@@ -99,9 +117,9 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Retrieves events matching a location and optional day from the local dataset.",
-        "open_world_justification": "Does not write to public internet state or any third-party system.",
-        "destructive_justification": "Does not delete, overwrite, revoke access, or perform irreversible actions."
+        "read_only_justification": "Retrieves public events for a matching location and optional day without changing data.",
+        "open_world_justification": "Only reads locally hosted festival programme data and does not write to any external system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, purchase tickets, make reservations, or perform irreversible actions."
       }
     },
     "free_highlights": {
@@ -111,9 +129,21 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Selects and ranks free events from the local festival dataset without changing data.",
-        "open_world_justification": "Does not write to public internet state or any third-party system.",
-        "destructive_justification": "Does not delete, overwrite, revoke access, or perform irreversible actions."
+        "read_only_justification": "Selects and ranks free public festival events with day-specific events deprioritized below all-day recurring ones, without changing data.",
+        "open_world_justification": "Only reads locally hosted festival programme data and does not write to any external system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, purchase tickets, make reservations, or perform irreversible actions."
+      }
+    },
+    "get_today": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Returns the current date and festival-period context without changing data.",
+        "open_world_justification": "Only reads server date context and public festival dates; it does not write to any external system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, purchase tickets, make reservations, or perform irreversible actions."
       }
     },
     "plan_day": {
@@ -123,67 +153,143 @@
         "destructiveHint": false
       },
       "justifications": {
-        "read_only_justification": "Combines day info, free highlights, and themed picks into one response from the local dataset.",
-        "open_world_justification": "Does not write to public internet state or any third-party system.",
-        "destructive_justification": "Does not delete, overwrite, revoke access, or perform irreversible actions."
+        "read_only_justification": "Combines public day information, ranked free highlights, and diverse themed picks into a read-only day plan.",
+        "open_world_justification": "Only reads locally hosted festival programme data and does not write to any external system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, purchase tickets, make reservations, or perform irreversible actions."
+      }
+    },
+    "create_festival_guide": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Builds a personalized guide from public festival records and user preferences without changing data.",
+        "open_world_justification": "Only reads locally hosted festival programme data and does not write to any external system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, purchase tickets, make reservations, or perform irreversible actions."
+      }
+    },
+    "find_similar_events": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Finds related public festival events using local similarity and schedule/location data without changing data.",
+        "open_world_justification": "Only reads locally hosted festival programme data and local indexes; it does not write to any external system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, purchase tickets, make reservations, or perform irreversible actions."
+      }
+    },
+    "get_parent_event": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Resolves parent/child event relationships and returns occurrences without changing data.",
+        "open_world_justification": "Only reads locally hosted festival programme data and does not write to any external system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, purchase tickets, make reservations, or perform irreversible actions."
+      }
+    },
+    "get_zone_profile": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Retrieves an editorial festival-zone profile and matching public events without changing data.",
+        "open_world_justification": "Only reads locally hosted zone and festival programme data; it does not write to any external system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, purchase tickets, make reservations, or perform irreversible actions."
+      }
+    },
+    "list_zones": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Lists editorial festival zones with vibe and good-for tags without changing data.",
+        "open_world_justification": "Only reads locally hosted zone data and does not write to any external system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, purchase tickets, make reservations, or perform irreversible actions."
+      }
+    },
+    "zone_detail": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Retrieves details for a festival zone including event-based outdoor ratio and its public events without changing data.",
+        "open_world_justification": "Only reads locally hosted zone and festival programme data; it does not write to any external system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, purchase tickets, make reservations, or perform irreversible actions."
+      }
+    },
+    "search_by_zone": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Searches public festival events within a selected zone with genre, day, accessibility, and free/outdoor filters without changing data.",
+        "open_world_justification": "Only reads locally hosted zone and festival programme data; it does not write to any external system.",
+        "destructive_justification": "Does not delete, overwrite, revoke access, purchase tickets, make reservations, or perform irreversible actions."
       }
     }
   },
   "test_cases": [
     {
-      "description": "Search for accessible free outdoor events on a specific festival day.",
-      "user_prompt": "Welke gratis buitenevenementen zijn rolstoeltoegankelijk op zaterdag 18 juli 2026?",
+      "description": "Open the interactive ChatGPT Apps widget for festival exploration.",
+      "user_prompt": "Open een interactieve festivalverkenner voor jazz op zaterdag.",
       "file_attachment_urls": null,
-      "tools_triggered": "search_events",
-      "expected_output": "Returns matching events with dates, times, locations, and relevant accessibility information.",
+      "tools_triggered": "show_festival_explorer",
+      "expected_output": "Returns structuredContent with mode search, event cards for jazz on Saturday, and widget metadata pointing to ui://widget/gf2026-explorer-v1.html.",
       "expected_output_url": null
     },
     {
-      "description": "Recommend events from a natural-language preference.",
-      "user_prompt": "Ik zoek rustige jazz in openlucht tijdens de Gentse Feesten.",
+      "description": "Search events by genre with substring and zone scoping.",
+      "user_prompt": "Zoek techno evenementen op de Vlasmarkt.",
+      "file_attachment_urls": null,
+      "tools_triggered": "search_by_zone → search_events",
+      "expected_output": "Returns events in Vlasmarkt zone matching genre substring 'techno' across genre, themes, and keywords.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Recommend events from a Dutch mood with alias expansion.",
+      "user_prompt": "Ik zoek iets niet te braaf: zwoel, queer of cabaret tijdens de Gentse Feesten.",
       "file_attachment_urls": null,
       "tools_triggered": "suggest",
-      "expected_output": "Returns a concise set of relevant festival recommendations and explains why they match.",
+      "expected_output": "Returns up to 8 recommendations matching expanded vibe tags with match_reasons explaining fit.",
       "expected_output_url": null
     },
     {
-      "description": "Inspect the complete details for a selected event.",
-      "user_prompt": "Geef me alle details voor evenement 9f056750-97bb-4111-aa12-558d87be0c86, inclusief alle tijdstippen, prijs en toegankelijkheid.",
+      "description": "Filter events by time-of-day window scoped to the queried day.",
+      "user_prompt": "Wat is er 's avonds te doen op zondag 19 juli?",
       "file_attachment_urls": null,
-      "tools_triggered": "get_event_detail",
-      "expected_output": "Returns the selected event's complete public details or a clear not-found response for an invalid UUID.",
+      "tools_triggered": "search_events → free_highlights",
+      "expected_output": "Returns evening events for 2026-07-19 with occurrence_time scoped to that day; each result includes occurrence_time and recurring_all_days fields.",
       "expected_output_url": null
     },
     {
-      "description": "Find the program at a named festival location on a specific day.",
-      "user_prompt": "Wat is er zondag te doen op de Vrijdagmarkt?",
+      "description": "Explore zone details with event-based outdoor ratio.",
+      "user_prompt": "Geef me een profiel van de Vlasmarkt: vibe en buitenevents.",
       "file_attachment_urls": null,
-      "tools_triggered": "events_by_location",
-      "expected_output": "Returns events at the matching location on that day, ordered by date and time.",
+      "tools_triggered": "list_zones → get_zone_profile → zone_detail",
+      "expected_output": "Returns zone profile with vibe, good_for tags, and outdoor_ratio counting events not locations.",
       "expected_output_url": null
     },
     {
-      "description": "Find the best free festival options for one day.",
-      "user_prompt": "Geef me de beste gratis aanraders voor vrijdag 17 juli 2026",
+      "description": "Create a personalized guide with zone picks and match reasons.",
+      "user_prompt": "Maak een festivalgids voor zaterdag voor vrienden: dansen, burlesque, niet te duur.",
       "file_attachment_urls": null,
-      "tools_triggered": "free_highlights",
-      "expected_output": "Returns up to ten ranked free events for the requested day.",
-      "expected_output_url": null
-    },
-    {
-      "description": "Get current date and festival context for 'today' queries.",
-      "user_prompt": "Wat kan ik vandaag doen tijdens de Gentse Feesten?",
-      "file_attachment_urls": null,
-      "tools_triggered": "get_today",
-      "expected_output": "Returns today's date, weekday, and whether it's during the festival period.",
-      "expected_output_url": null
-    },
-    {
-      "description": "Plan a full festival day combining highlights and themed picks.",
-      "user_prompt": "Plan een dag voor mij op zaterdag 18 juli",
-      "file_attachment_urls": null,
-      "tools_triggered": "plan_day",
-      "expected_output": "Returns day info, free highlights, and diverse themed picks in one response.",
+      "tools_triggered": "create_festival_guide",
+      "expected_output": "Returns anchor_events with non-empty match_reasons, fallback_events, relevant zones, and energy_strategy.",
       "expected_output_url": null
     }
   ],
@@ -193,7 +299,7 @@
       "user_prompt": "Welke concerten zijn er volgende maand in Antwerpen?",
       "file_attachment_urls": null,
       "tools_triggered": null,
-      "expected_output": "The app should not be invoked because it only covers the Gentse Feesten 2026 program in Gent.",
+      "expected_output": "The app should not be invoked because it only covers the Gentse Feesten 2026 programme in Gent.",
       "expected_output_url": null
     },
     {
@@ -201,7 +307,7 @@
       "user_prompt": "Koop twee tickets voor een concert vanavond.",
       "file_attachment_urls": null,
       "tools_triggered": null,
-      "expected_output": "The app should not be invoked because it cannot purchase tickets or make reservations.",
+      "expected_output": "The app should not be invoked because it cannot purchase tickets, process payments, or make reservations.",
       "expected_output_url": null
     },
     {
